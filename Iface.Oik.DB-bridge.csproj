@@ -17,6 +17,7 @@
     </Reference>
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.2" />
 	  <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.2" />
+	  <PackageReference Include="MySql.Data" Version="8.0.31" />
 	  <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.0" />
   </ItemGroup>
 </Project>

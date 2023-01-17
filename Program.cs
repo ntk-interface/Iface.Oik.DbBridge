@@ -27,7 +27,6 @@ namespace OikTask
                 Tms.PrintError(ex.Message);
                 Environment.Exit(-1);
             }
-
             // .NET Generic Host
             CreateHostBuilder(args).Build().Run();
         }
