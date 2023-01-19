@@ -2,13 +2,12 @@ using Iface.Oik.Tm.Helpers;
 using Iface.Oik.Tm.Interfaces;
 using Iface.Oik.Tm.Utils;
 using Microsoft.Extensions.Hosting;
-using MySql.Data;
 using MySql.Data.MySqlClient;
+using Npgsql;
+using System.Data.SqlClient;
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
-using System.Reflection.PortableExecutable;
-using static Iface.Oik.Tm.Native.Interfaces.TmNativeDefs;
 
 namespace OikTask
 {
@@ -16,7 +15,7 @@ namespace OikTask
     {
         public static string? aSQL;
         public static string? ConnectionString;
-        public static int period=1;
+        public static int period=10;
         public static int offset=0;
         
         private const int WorkerDelay = 100;
@@ -27,7 +26,6 @@ namespace OikTask
 
         private readonly ICommonInfrastructure _infr;
         private readonly IOikDataApi _api;
-
 
         public Worker(ICommonInfrastructure infr,
                       IOikDataApi api)
@@ -50,17 +48,37 @@ namespace OikTask
             string dbPassword = connection_params.ElementAtOrDefault(4) ?? "";
 
             // Создание специфических объектов БД в зависимости от типа
-            switch (dbType)
+            switch (dbType.ToUpper())
             {
+                case "MS":
+                    dbConnection = new SqlConnection(new SqlConnectionStringBuilder
+                        {
+                            DataSource     = dbServer,
+                            InitialCatalog = dbDatabase,
+                            UserID         = dbUserID,
+                            Password       = dbPassword
+                        }.ConnectionString);
+                    dbCommand = (dbConnection as SqlConnection)!.CreateCommand();
+                    break;
                 case "MY":
                     dbConnection = new MySqlConnection(new MySqlConnectionStringBuilder
                         {
-                            Server = dbServer,
-                            UserID = dbUserID,
-                            Password = dbPassword,
-                            Database = dbDatabase
+                            Server   = dbServer,
+                            Database = dbDatabase,
+                            UserID   = dbUserID,
+                            Password = dbPassword
                         }.ConnectionString);
                     dbCommand = (dbConnection as MySqlConnection)!.CreateCommand();
+                    break;
+                case "PG":
+                    dbConnection = new NpgsqlConnection(new NpgsqlConnectionStringBuilder
+                        {
+                            Host     = dbServer,
+                            Database = dbDatabase,
+                            Username = dbUserID,
+                            Password = dbPassword
+                        }.ConnectionString);
+                    dbCommand = (dbConnection as NpgsqlConnection)!.CreateCommand();
                     break;
                 default:
                     Tms.PrintError("Неподдерживаемый тип базы данных ("+dbType+")");
@@ -112,9 +130,10 @@ namespace OikTask
                                 parsed_statement += res;
                             else
                                 parsed_statement += "ERR";
+                            Tms.PrintDebug(tokens[i]+"="+res);
                         }
                     }
-                    Tms.PrintMessage("Исполняем SQL: " + parsed_statement);
+                    Tms.PrintDebug("Исполняем SQL: " + parsed_statement);
                     dbCommand.CommandText = parsed_statement;
                     await dbConnection.OpenAsync();
                     if (parsed_statement.Trim().StartsWith("select", StringComparison.OrdinalIgnoreCase))
@@ -127,7 +146,7 @@ namespace OikTask
                             {
                                 line += dr[i].ToString() + '\t';
                             }
-                            Console.WriteLine(line);
+                            Tms.PrintDebug(line);
                             if(dr.FieldCount == 5)
                             {
                                 string c_type = dr[0].ToString() ?? "";
@@ -165,7 +184,7 @@ namespace OikTask
                     else
                     {
                         int number = await dbCommand.ExecuteNonQueryAsync();
-                        Console.WriteLine("Изменено объектов: {0}", number);
+                        Tms.PrintDebug("Изменено объектов: "+number.ToString());
                     }
                     dbConnection.Close();
                 }

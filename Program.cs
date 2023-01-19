@@ -16,7 +16,25 @@ namespace OikTask
         {
             // требуется для работы с кодировкой Win-1251
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            if( Environment.GetCommandLineArgs().Length < 2 )
+            {
+                Console.WriteLine("\nПрограмма обмена данными ОИК и сторонних СУБД\n\nИспользование:");
+                Console.WriteLine("{0} сервер_тм компьютер_оик /pпериод_запуска /dтип;сервер;база;пользователь;пароль\n",
+                    Path.GetFileNameWithoutExtension(Environment.GetCommandLineArgs()[0]));
+                Console.WriteLine(
+@"период_запуска - периодичность исполнения в секундах, можно указать исполнение чуть раньше.
+Например /p60-1 запуск каждую минуту за секунду до наступления времени.
+умолчание 10 секунд
 
+тип - MS, MY, PG. Microsoft SQL, mySQL, PostgreSQL соответственно
+
+Дополнительные параметры
+/fфайл_с_запросом_на_сервере_ОИК
+/uпользователь_ОИК
+/sпароль_ОИК");                   
+                    
+                Environment.Exit(-1);
+            }
             // устанавливаем соединение с сервером ОИК
             try
             {
