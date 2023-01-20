@@ -18,8 +18,8 @@ namespace OikTask
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             if( Environment.GetCommandLineArgs().Length < 2 )
             {
-                Console.WriteLine("\nПрограмма обмена данными ОИК и сторонних СУБД\n\nИспользование:");
-                Console.WriteLine("{0} сервер_тм компьютер_оик /pпериод_запуска /dтип;сервер;база;пользователь;пароль\n",
+                Console.WriteLine("\nПрограмма обмена данными между \"ОИК Диспетчер\" и сторонними СУБД\n\nИспользование:");
+                Console.WriteLine("{0} сервер_тм компьютер_оик /pпериод_запуска /dтип,сервер,база,пользователь,пароль\n",
                     Path.GetFileNameWithoutExtension(Environment.GetCommandLineArgs()[0]));
                 Console.WriteLine(
 @"период_запуска - периодичность исполнения в секундах, можно указать исполнение чуть раньше.

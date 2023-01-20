@@ -37,10 +37,10 @@ namespace OikTask
         {
             if(ConnectionString == null)
             {
-                Tms.PrintError("Не заданы параметры соединения (/dтип;сервер;бд;пользователь;пароль)");
+                Tms.PrintError("Не заданы параметры соединения (/dтип,сервер,бд,пользователь,пароль)");
                 return;
             }
-            var connection_params = ConnectionString.Split(';');
+            var connection_params = ConnectionString.Split(',');
             string dbType     = connection_params.ElementAtOrDefault(0) ?? "";
             string dbServer   = connection_params.ElementAtOrDefault(1) ?? "";
             string dbDatabase = connection_params.ElementAtOrDefault(2) ?? "";
@@ -52,12 +52,13 @@ namespace OikTask
             {
                 case "MS":
                     dbConnection = new SqlConnection(new SqlConnectionStringBuilder
-                        {
-                            DataSource     = dbServer,
-                            InitialCatalog = dbDatabase,
-                            UserID         = dbUserID,
-                            Password       = dbPassword
-                        }.ConnectionString);
+                    {
+                        DataSource = dbServer,
+                        InitialCatalog = dbDatabase,
+                        UserID = dbUserID,
+                        Password = dbPassword,
+                        TrustServerCertificate = true
+                    }.ConnectionString);
                     dbCommand = (dbConnection as SqlConnection)!.CreateCommand();
                     break;
                 case "MY":
@@ -97,8 +98,8 @@ namespace OikTask
                     if (((GetSeconds() + offset) % period) > 5)
                         continue;
                 }
-                await DoWork();
-                await Task.Delay(WorkerDelay, stoppingToken);
+                await DoWork().ConfigureAwait(false);
+                await Task.Delay(WorkerDelay, stoppingToken).ConfigureAwait(false);
             }
             if(dbCommand != null) dbCommand.Dispose();
             if(dbConnection != null) dbConnection.Dispose();
@@ -125,7 +126,7 @@ namespace OikTask
                         }
                         else
                         { 
-                            string res = await _api.GetExpressionResult(tokens[i]);
+                            string res = await _api.GetExpressionResult(tokens[i]).ConfigureAwait(false);
                             if(float.TryParse(res, NumberStyles.Any, CultureInfo.InvariantCulture, out var f_res))
                                 parsed_statement += res;
                             else
@@ -135,10 +136,10 @@ namespace OikTask
                     }
                     Tms.PrintDebug("Исполняем SQL: " + parsed_statement);
                     dbCommand.CommandText = parsed_statement;
-                    await dbConnection.OpenAsync();
+                    await dbConnection.OpenAsync().ConfigureAwait(false);
                     if (parsed_statement.Trim().StartsWith("select", StringComparison.OrdinalIgnoreCase))
                     {
-                        DbDataReader dr = await dbCommand.ExecuteReaderAsync();
+                        DbDataReader dr = await dbCommand.ExecuteReaderAsync().ConfigureAwait(false);
                         while (dr.Read())
                         {
                             string line = "";
@@ -159,7 +160,7 @@ namespace OikTask
                                     case "#TT":
                                         if(float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var f_value))
                                         {
-                                            await _api.SetAnalog(i_ch, i_rtu, i_point, f_value);
+                                            await _api.SetAnalog(i_ch, i_rtu, i_point, f_value).ConfigureAwait(false);
                                         }
                                         else
                                         {
@@ -169,13 +170,12 @@ namespace OikTask
                                     case "#TC":
                                         if(short.TryParse(value, out var i_value))
                                         {
-                                            await _api.SetStatus(i_ch, i_rtu, i_point, i_value);
+                                            await _api.SetStatus(i_ch, i_rtu, i_point, i_value).ConfigureAwait(false);
                                         }
                                         else
                                         {
                                             Tms.Native.TmcSetStatusFlags(_infr.TmCid, i_ch, i_rtu, i_point,(short)TmFlags.Unreliable);
                                         }
-
                                         break;        
                                 }
                             }
@@ -183,7 +183,7 @@ namespace OikTask
                     }
                     else
                     {
-                        int number = await dbCommand.ExecuteNonQueryAsync();
+                        int number = await dbCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
                         Tms.PrintDebug("Изменено объектов: "+number.ToString());
                     }
                     dbConnection.Close();

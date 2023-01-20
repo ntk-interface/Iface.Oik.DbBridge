@@ -127,15 +127,11 @@ namespace OikTask
                 }
             }
         }
-
-
         public override Task StartAsync(CancellationToken cancellationToken)
         {
             _infr.InitializeTmWithoutSql(_tmCid, _userInfo, _serverFeatures);
             return base.StartAsync(cancellationToken);
         }
-
-
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -148,8 +144,6 @@ namespace OikTask
                 }
             }
         }
-
-
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
             Tms.TerminateWithoutSql(_tmCid);
