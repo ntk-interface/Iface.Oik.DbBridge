@@ -8,15 +8,16 @@ using System.Data.SqlClient;
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
+using Org.BouncyCastle.Asn1;
 
 namespace OikTask
 {
     public class Worker : BackgroundService
     {
-        public static string? aSQL;
-        public static string? ConnectionString;
-        public static int period=10;
-        public static int offset=0;
+        private static string? aSQL;
+        private static string? connectionString;
+        private static int period=10;
+        private static int offset=0;
         
         private const int WorkerDelay = 100;
         private long lasttime;
@@ -33,14 +34,21 @@ namespace OikTask
             _infr = infr;
             _api = api;
         }
+        public static void Initialize(string _connectionString, string _aSQL, int _period, int _offset)
+        {
+            connectionString = _connectionString;
+            aSQL = _aSQL;
+            period = _period;
+            offset = _offset;
+        }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if(ConnectionString == null)
+            if(connectionString == null)
             {
                 Tms.PrintError("Не заданы параметры соединения (/dтип,сервер,бд,пользователь,пароль)");
                 return;
             }
-            var connection_params = ConnectionString.Split(',');
+            var connection_params = connectionString.Split(',');
             string dbType     = connection_params.ElementAtOrDefault(0) ?? "";
             string dbServer   = connection_params.ElementAtOrDefault(1) ?? "";
             string dbDatabase = connection_params.ElementAtOrDefault(2) ?? "";
