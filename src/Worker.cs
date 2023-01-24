@@ -66,7 +66,7 @@ namespace OikTask
                         Password = dbPassword,
                         TrustServerCertificate = true
                     }.ConnectionString);
-                    dbCommand = (dbConnection as SqlConnection)!.CreateCommand();
+                    dbCommand = (dbConnection as SqlConnection)!.CreateCommand();                   
                     break;
                 case "MY":
                     dbConnection = new MySqlConnection(new MySqlConnectionStringBuilder
@@ -161,7 +161,8 @@ namespace OikTask
                                 string ch = dr[1].ToString() ?? ""; if (!short.TryParse(ch, out var i_ch)) i_ch = -1;
                                 string rtu = dr[2].ToString() ?? ""; if (!short.TryParse(rtu, out var i_rtu)) i_rtu = -1;
                                 string point = dr[3].ToString() ?? ""; if (!short.TryParse(point, out var i_point)) i_point = -1;
-                                string value = dr[4].ToString() ?? "";
+                                // заменим запятую-разделитель целой и дробной части на точку, чтобы не зависеть от настроек региона
+                                string value = (dr[4].ToString() ?? "").Replace(',','.');
                                 switch (c_type.ToUpper())
                                 {
                                     case "#TT":
