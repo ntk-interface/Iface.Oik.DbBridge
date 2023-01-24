@@ -49,7 +49,7 @@ deploy_linux:
     - build_linux
   allow_failure: true
   script:
-    - if Test-Path($ARTIFACT_DIR) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
+    - if (Test-Path $ARTIFACT_DIR ) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
     - New-Item $ARTIFACT_DIR 
     - Copy-Item cp linux/* $ARTIFACT_DIR
 
@@ -64,6 +64,6 @@ deploy_windows:
     - build_windows
   allow_failure: true
   script:
-    - if Test-Path($ARTIFACT_DIR) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
+    - if (Test-Path $ARTIFACT_DIR ) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
     - New-Item $ARTIFACT_DIR 
     - Copy-Item cp linux/* $ARTIFACT_DIR
