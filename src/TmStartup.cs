@@ -55,7 +55,7 @@ namespace OikTask
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (await Task.Run(() => Tms.StopEventSignalDuringWait(_stopEventHandle, 1000), stoppingToken))
+                if (await Task.Run(() => Tms.StopEventSignalDuringWait(_stopEventHandle, 1000), stoppingToken).ConfigureAwait(false))
                 {
                     Tms.PrintMessage("Получено сообщение об остановке со стороны сервера");
                     _applicationLifetime.StopApplication();
@@ -70,7 +70,7 @@ namespace OikTask
 
             Tms.PrintMessage("Задача будет закрыта");
 
-            await base.StopAsync(cancellationToken);
+            await base.StopAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

@@ -6,6 +6,7 @@
     <RootNamespace>Iface.Oik.DB_bridge</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -18,22 +19,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+	  <PackageReference Include="Iface.Oik.Tm" Version="1.0.1" />
+	  <PackageReference Include="Iface.Oik.Tm.Native" Version="1.0.1" />
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.2" />
 	  <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.2" />
 	  <PackageReference Include="MySql.Data" Version="8.0.31" />
 	  <PackageReference Include="Npgsql" Version="7.0.1" />
 	  <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Iface.Oik.Tm">
-      <HintPath>lib\Iface.Oik.Tm.dll</HintPath>
-    </Reference>
-    <Reference Include="Iface.Oik.Tm.Native">
-      <HintPath>lib\Iface.Oik.Tm.Native.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
+<!--
 	<ItemGroup>
 		<ContentWithTargetPath Include="lib\libif_cfs.so">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -48,4 +42,5 @@
 		</ContentWithTargetPath>
 		<None Include="lib\libif_cfs.dll" />
 	</ItemGroup>
+-->	
 </Project>
