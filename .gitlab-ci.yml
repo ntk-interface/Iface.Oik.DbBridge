@@ -48,7 +48,7 @@ deploy_linux:
   dependencies:
     - build_linux
   script:
-    - rm -rf $ARTIFACT_DIR || true
+    - Remove-Item $ARTIFACT_DIR -Recurse -Force
     - mkdir -p $ARTIFACT_DIR 
     - cp linux/* $ARTIFACT_DIR
 
@@ -62,6 +62,6 @@ deploy_windows:
   dependencies:
     - build_windows
   script:
-    - rm $ARTIFACT_DIR || true
+    - Remove-Item $ARTIFACT_DIR -Recurse -Force
     - mkdir -p $ARTIFACT_DIR 
     - cp windows/* $ARTIFACT_DIR
