@@ -14,7 +14,6 @@ build_linux:
     GIT_STRATEGY: fetch
   script:
     - dotnet publish -c Release -r linux-x64 --output linux --no-self-contained 
-    - rm linux/libif_cfs.dll
   
   artifacts:
     name: db-bridge.linux
@@ -30,7 +29,6 @@ build_windows:
     GIT_STRATEGY: fetch
   script:
     - dotnet publish -c Release -r win-x64 --output windows --no-self-contained
-    - rm windows/libif_cfs.so
   
   artifacts:
     name: db-bridge.windows
