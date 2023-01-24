@@ -1,0 +1,63 @@
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - build
+  - deploy
+
+build_linux:
+  stage: build
+  tags:
+    - linux
+  variables:
+    GIT_STRATEGY: fetch
+  script:
+    - dotnet publish -c Release -r linux-x64 --output linux --no-self-contained 
+    - rm linux/lib_ifcfs.dll
+  
+  artifacts:
+    name: db-bridge.linux
+    expire_in: 1 day
+    paths:
+      - linux/
+        
+build_windows:
+  stage: build
+  tags:
+    - linux
+  variables:
+    GIT_STRATEGY: fetch
+  script:
+    - dotnet publish -c Release -r win-x64 --output windows --no-self-contained
+    - rm windows/lib_ifcfs.so
+  
+  artifacts:
+    name: db-bridge.windows
+    expire_in: 1 day
+    paths:
+      - windows/
+
+deploy_linux:
+  stage: deploy
+  tags:
+    - win10
+  variables:
+    ARTIFACT_DIR: "C:\\Artifacts\\Iface.Oik.DB-bridge\\Linux"
+
+  dependencies:
+    - build_linux
+  script:
+    - cp linux/* $ARTIFACT_DIR
+
+deploy_windows:
+  stage: deploy
+  tags:
+    - win10
+  variables:
+    ARTIFACT_DIR: "C:\\Artifacts\\Iface.Oik.DB-bridge\\Windows"
+
+  dependencies:
+    - build_windows
+  script:
+    - cp windows/* $ARTIFACT_DIR
