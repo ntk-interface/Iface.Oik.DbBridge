@@ -14,7 +14,7 @@ build_linux:
     GIT_STRATEGY: fetch
   script:
     - dotnet publish -c Release -r linux-x64 --output linux --no-self-contained 
-    - rm linux/lib_ifcfs.dll
+    - rm linux/libif_cfs.dll
   
   artifacts:
     name: db-bridge.linux
@@ -30,7 +30,7 @@ build_windows:
     GIT_STRATEGY: fetch
   script:
     - dotnet publish -c Release -r win-x64 --output windows --no-self-contained
-    - rm windows/lib_ifcfs.so
+    - rm windows/libif_cfs.so
   
   artifacts:
     name: db-bridge.windows
@@ -48,7 +48,9 @@ deploy_linux:
   dependencies:
     - build_linux
   script:
-    - cp linux/* $ARTIFACT_DIR
+    - if (Test-Path $ARTIFACT_DIR ) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
+    - New-Item -ItemType "directory" -Path $ARTIFACT_DIR -Force
+    - Copy-Item linux/* $ARTIFACT_DIR
 
 deploy_windows:
   stage: deploy
@@ -60,4 +62,6 @@ deploy_windows:
   dependencies:
     - build_windows
   script:
-    - cp windows/* $ARTIFACT_DIR
+    - if (Test-Path $ARTIFACT_DIR ) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
+    - New-Item -ItemType "directory" -Path $ARTIFACT_DIR -Force
+    - Copy-Item windows/* $ARTIFACT_DIR
