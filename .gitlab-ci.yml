@@ -48,7 +48,7 @@ deploy_linux:
   dependencies:
     - build_linux
   script:
-    - Get-ChildItem $ARTIFACT_DIR -Recurse | Remove-Item
+    - Get-ChildItem $ARTIFACT_DIR -Recurse -ErrorAction SilentlyContinue | Remove-Item
     - mkdir -p $ARTIFACT_DIR 
     - cp linux/* $ARTIFACT_DIR
 
@@ -62,6 +62,6 @@ deploy_windows:
   dependencies:
     - build_windows
   script:
-    - Get-ChildItem $ARTIFACT_DIR -Recurse | Remove-Item
+    - Get-ChildItem $ARTIFACT_DIR -Recurse -ErrorAction SilentlyContinue | Remove-Item
     - mkdir -p $ARTIFACT_DIR 
     - cp windows/* $ARTIFACT_DIR
