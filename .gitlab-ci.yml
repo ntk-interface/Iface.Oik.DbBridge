@@ -47,10 +47,9 @@ deploy_linux:
 
   dependencies:
     - build_linux
-  allow_failure: true
   script:
     - if (Test-Path $ARTIFACT_DIR ) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
-    - New-Item new-item -ItemType "directory" -Path $ARTIFACT_DIR -Force
+    - New-Item -ItemType "directory" -Path $ARTIFACT_DIR -Force
     - Copy-Item cp linux/* $ARTIFACT_DIR
 
 deploy_windows:
@@ -62,8 +61,7 @@ deploy_windows:
 
   dependencies:
     - build_windows
-  allow_failure: true
   script:
     - if (Test-Path $ARTIFACT_DIR ) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
-    - New-Item new-item -ItemType "directory" -Path $ARTIFACT_DIR -Force
+    - New-Item -ItemType "directory" -Path $ARTIFACT_DIR -Force
     - Copy-Item cp linux/* $ARTIFACT_DIR
