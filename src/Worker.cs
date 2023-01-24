@@ -4,11 +4,10 @@ using Iface.Oik.Tm.Utils;
 using Microsoft.Extensions.Hosting;
 using MySql.Data.MySqlClient;
 using Npgsql;
-using System.Data.SqlClient;
 using System.Data;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Globalization;
-using Org.BouncyCastle.Asn1;
 
 namespace OikTask
 {
@@ -16,9 +15,9 @@ namespace OikTask
     {
         private static string? aSQL;
         private static string? connectionString;
-        private static int period=10;
-        private static int offset=0;
-        
+        private static int period = 10;
+        private static int offset = 0;
+
         private const int WorkerDelay = 100;
         private long lasttime;
 
@@ -43,16 +42,16 @@ namespace OikTask
         }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if(connectionString == null)
+            if (connectionString == null)
             {
                 Tms.PrintError("Не заданы параметры соединения (/dтип,сервер,бд,пользователь,пароль)");
                 return;
             }
             var connection_params = connectionString.Split(',');
-            string dbType     = connection_params.ElementAtOrDefault(0) ?? "";
-            string dbServer   = connection_params.ElementAtOrDefault(1) ?? "";
+            string dbType = connection_params.ElementAtOrDefault(0) ?? "";
+            string dbServer = connection_params.ElementAtOrDefault(1) ?? "";
             string dbDatabase = connection_params.ElementAtOrDefault(2) ?? "";
-            string dbUserID   = connection_params.ElementAtOrDefault(3) ?? "";
+            string dbUserID = connection_params.ElementAtOrDefault(3) ?? "";
             string dbPassword = connection_params.ElementAtOrDefault(4) ?? "";
 
             // Создание специфических объектов БД в зависимости от типа
@@ -71,26 +70,26 @@ namespace OikTask
                     break;
                 case "MY":
                     dbConnection = new MySqlConnection(new MySqlConnectionStringBuilder
-                        {
-                            Server   = dbServer,
-                            Database = dbDatabase,
-                            UserID   = dbUserID,
-                            Password = dbPassword
-                        }.ConnectionString);
+                    {
+                        Server = dbServer,
+                        Database = dbDatabase,
+                        UserID = dbUserID,
+                        Password = dbPassword
+                    }.ConnectionString);
                     dbCommand = (dbConnection as MySqlConnection)!.CreateCommand();
                     break;
                 case "PG":
                     dbConnection = new NpgsqlConnection(new NpgsqlConnectionStringBuilder
-                        {
-                            Host     = dbServer,
-                            Database = dbDatabase,
-                            Username = dbUserID,
-                            Password = dbPassword
-                        }.ConnectionString);
+                    {
+                        Host = dbServer,
+                        Database = dbDatabase,
+                        Username = dbUserID,
+                        Password = dbPassword
+                    }.ConnectionString);
                     dbCommand = (dbConnection as NpgsqlConnection)!.CreateCommand();
                     break;
                 default:
-                    Tms.PrintError("Неподдерживаемый тип базы данных ("+dbType+")");
+                    Tms.PrintError("Неподдерживаемый тип базы данных (" + dbType + ")");
                     return;
             }
             // Запуск исполнения по границе периода
@@ -109,8 +108,8 @@ namespace OikTask
                 await DoWork().ConfigureAwait(false);
                 await Task.Delay(WorkerDelay, stoppingToken).ConfigureAwait(false);
             }
-            if(dbCommand != null) dbCommand.Dispose();
-            if(dbConnection != null) dbConnection.Dispose();
+            dbCommand?.Dispose();
+            dbConnection?.Dispose();
         }
         async Task DoWork()
         {
@@ -119,9 +118,9 @@ namespace OikTask
             try
             {
                 var statements = aSQL.Split(';');
-                foreach ( var statement in statements )
+                foreach (var statement in statements)
                 {
-                    if(statement.Trim().IsNullOrEmpty())
+                    if (statement.Trim().IsNullOrEmpty())
                     { continue; }
                     // Части выражения, выделенные %..%, обрабатываются на сервере ТМ
                     string parsed_statement = "";
@@ -133,13 +132,13 @@ namespace OikTask
                             parsed_statement += tokens[i];
                         }
                         else
-                        { 
+                        {
                             string res = await _api.GetExpressionResult(tokens[i]).ConfigureAwait(false);
-                            if(float.TryParse(res, NumberStyles.Any, CultureInfo.InvariantCulture, out var f_res))
+                            if (float.TryParse(res, NumberStyles.Any, CultureInfo.InvariantCulture, out var f_res))
                                 parsed_statement += res;
                             else
                                 parsed_statement += "ERR";
-                            Tms.PrintDebug(tokens[i]+"="+res);
+                            Tms.PrintDebug(tokens[i] + "=" + res);
                         }
                     }
                     Tms.PrintDebug("Исполняем SQL: " + parsed_statement);
@@ -156,17 +155,17 @@ namespace OikTask
                                 line += dr[i].ToString() + '\t';
                             }
                             Tms.PrintDebug(line);
-                            if(dr.FieldCount == 5)
+                            if (dr.FieldCount == 5)
                             {
                                 string c_type = dr[0].ToString() ?? "";
-                                string ch     = dr[1].ToString() ?? ""; short.TryParse(ch,    out var i_ch);
-                                string rtu    = dr[2].ToString() ?? ""; short.TryParse(rtu,   out var i_rtu);
-                                string point  = dr[3].ToString() ?? ""; short.TryParse(point, out var i_point);
-                                string value  = dr[4].ToString() ?? "";
-                                switch(c_type.ToUpper())
+                                string ch = dr[1].ToString() ?? ""; if (!short.TryParse(ch, out var i_ch)) i_ch = -1;
+                                string rtu = dr[2].ToString() ?? ""; if (!short.TryParse(rtu, out var i_rtu)) i_rtu = -1;
+                                string point = dr[3].ToString() ?? ""; if (!short.TryParse(point, out var i_point)) i_point = -1;
+                                string value = dr[4].ToString() ?? "";
+                                switch (c_type.ToUpper())
                                 {
                                     case "#TT":
-                                        if(float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var f_value))
+                                        if (float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var f_value))
                                         {
                                             await _api.SetAnalog(i_ch, i_rtu, i_point, f_value).ConfigureAwait(false);
                                         }
@@ -176,15 +175,15 @@ namespace OikTask
                                         }
                                         break;
                                     case "#TC":
-                                        if(short.TryParse(value, out var i_value))
+                                        if (short.TryParse(value, out var i_value))
                                         {
                                             await _api.SetStatus(i_ch, i_rtu, i_point, i_value).ConfigureAwait(false);
                                         }
                                         else
                                         {
-                                            Tms.Native.TmcSetStatusFlags(_infr.TmCid, i_ch, i_rtu, i_point,(short)TmFlags.Unreliable);
+                                            Tms.Native.TmcSetStatusFlags(_infr.TmCid, i_ch, i_rtu, i_point, (short)TmFlags.Unreliable);
                                         }
-                                        break;        
+                                        break;
                                 }
                             }
                         }
@@ -192,7 +191,7 @@ namespace OikTask
                     else
                     {
                         int number = await dbCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
-                        Tms.PrintDebug("Изменено объектов: "+number.ToString());
+                        Tms.PrintDebug("Изменено объектов: " + number.ToString());
                     }
                     dbConnection.Close();
                 }
@@ -202,7 +201,7 @@ namespace OikTask
                 Tms.PrintError(ex.Message);
                 dbConnection.Close();
             }
-        }       
+        }
         public static long GetSeconds()
         {
             TimeSpan timeSpan = DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0);

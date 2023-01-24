@@ -1,12 +1,11 @@
-﻿using System;
-using System.Text;
-using Iface.Oik.Tm.Api;
+﻿using Iface.Oik.Tm.Api;
 using Iface.Oik.Tm.Helpers;
 using Iface.Oik.Tm.Interfaces;
 using Iface.Oik.Tm.Native.Api;
 using Iface.Oik.Tm.Native.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Text;
 
 namespace OikTask
 {
@@ -16,7 +15,7 @@ namespace OikTask
         {
             // требуется для работы с кодировкой Win-1251
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            if( Environment.GetCommandLineArgs().Length < 2 )
+            if (Environment.GetCommandLineArgs().Length < 2)
             {
                 Console.WriteLine("\nПрограмма обмена данными между \"ОИК Диспетчер\" и сторонними СУБД\n\nИспользование:");
                 Console.WriteLine("{0} сервер_тм компьютер_оик /pпериод_запуска /dтип,сервер,база,пользователь,пароль\n",
@@ -31,13 +30,13 @@ namespace OikTask
 Дополнительные параметры
 /fфайл_с_запросом_на_сервере_ОИК
 /uпользователь_ОИК
-/sпароль_ОИК");                   
-                    
+/sпароль_ОИК");
+
                 Environment.Exit(-1);
             }
             string _Pipe = "TMS", _Host = ".", _User = "", _Password = "", remoteConfFile = "";
-            string _connectionString="";
-            string _aSQL="";
+            string _connectionString = "";
+            string _aSQL = "";
             int _period = 10;
             int _offset = 0;
 
@@ -47,19 +46,19 @@ namespace OikTask
                 var arg = commandLineArgs[i];
                 if (arg.StartsWith("/f", StringComparison.OrdinalIgnoreCase))  // Файл конфигурации
                 {
-                    remoteConfFile = arg.Substring(2);
+                    remoteConfFile = arg[2..];
                 }
                 else if (arg.StartsWith("/u", StringComparison.OrdinalIgnoreCase))  // Пользователь
                 {
-                    _User = arg.Substring(2);
+                    _User = arg[2..];
                 }
                 else if (arg.StartsWith("/s", StringComparison.OrdinalIgnoreCase))  // Пароль
                 {
-                    _Password = arg.Substring(2);
+                    _Password = arg[2..];
                 }
                 else if (arg.StartsWith("/p", StringComparison.OrdinalIgnoreCase))  // Период
                 {
-                    string fullPeriod = arg.Substring(2);
+                    string fullPeriod = arg[2..];
                     var splittedPeriod = fullPeriod.Split('-');
                     if (splittedPeriod.Length > 1)
                     {
@@ -76,7 +75,7 @@ namespace OikTask
                 }
                 else if (arg.StartsWith("/d", StringComparison.OrdinalIgnoreCase))  // Параметры соединения с БД
                 {
-                    _connectionString = arg.Substring(2);
+                    _connectionString = arg[2..];
                 }
                 else
                 {
@@ -95,7 +94,7 @@ namespace OikTask
                 }
             }
             // устанавливаем соединение с сервером ОИК
-            int _tmCid=0;
+            int _tmCid = 0;
             try
             {
                 _tmCid = TmStartup.Connect(_Pipe, _Host, _User, _Password);
@@ -120,11 +119,12 @@ namespace OikTask
 
                 const int errStringLength = 1000;
                 var errString = new byte[errStringLength];
-                uint errCode = 0;
                 if (!Tms.Native.CfsFileGet(cfCid, remoteConfFile, localTempConfFile, 30000, IntPtr.Zero,
-                                       out errCode, ref errString, errStringLength))
+                                       out uint errCode, ref errString, errStringLength))
                 {
-                    Tms.PrintError("Ошибка при чтении файла с SQL запросом (" + remoteConfFile + ")");
+                    string s_errString = System.Text.Encoding.Default.GetString(errString);
+                    s_errString = s_errString.Remove(s_errString.IndexOf('\0'));
+                    Tms.PrintError("Ошибка при чтении файла с SQL запросом (" + remoteConfFile + ")\n" + errCode.ToString() + " - " + s_errString);
                     Environment.Exit(-1);
                 }
                 else

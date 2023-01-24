@@ -30,18 +30,18 @@ namespace OikTask
         {
             (_tmCid, _userInfo, _serverFeatures, _stopEventHandle) =
               Tms.InitializeAsTaskWithoutSql(new TmOikTaskOptions
-                                                {
-                                                    TraceName = TraceName,
-                                                    TraceComment = TraceComment,
-                                                },
+              {
+                  TraceName = TraceName,
+                  TraceComment = TraceComment,
+              },
                                              new TmInitializeOptions
-                                                {
-                                                    ApplicationName = ApplicationName,
-                                                    TmServer = Pipe,
-                                                    Host = Host,
-                                                    User = User,
-                                                    Password = Password,
-                                                });
+                                             {
+                                                 ApplicationName = ApplicationName,
+                                                 TmServer = Pipe,
+                                                 Host = Host,
+                                                 User = User,
+                                                 Password = Password,
+                                             });
 
             Tms.PrintMessage("Соединение с сервером установлено");
             return _tmCid;
