@@ -318,3 +318,4 @@ ASALocalRun/
 *.binlog
 
 dist/
+/.vs/slnx.sqlite
