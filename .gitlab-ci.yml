@@ -48,8 +48,9 @@ deploy_linux:
   dependencies:
     - build_linux
   script:
-    - rmdir -rf $ARTIFACT_DIR || true
-    - mkdir $ARTIFACT_DIR && cp linux/* $ARTIFACT_DIR
+    - rm -rf $ARTIFACT_DIR || true
+    - mkdir -p $ARTIFACT_DIR 
+    - cp linux/* $ARTIFACT_DIR
 
 deploy_windows:
   stage: deploy
@@ -61,5 +62,6 @@ deploy_windows:
   dependencies:
     - build_windows
   script:
-    - rmdir $ARTIFACT_DIR || true
-    - mkdir $ARTIFACT_DIR && cp windows/* $ARTIFACT_DIR
+    - rm $ARTIFACT_DIR || true
+    - mkdir -p $ARTIFACT_DIR 
+    - cp windows/* $ARTIFACT_DIR
