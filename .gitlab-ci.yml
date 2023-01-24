@@ -50,7 +50,7 @@ deploy_linux:
   script:
     - if (Test-Path $ARTIFACT_DIR ) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
     - New-Item -ItemType "directory" -Path $ARTIFACT_DIR -Force
-    - Copy-Item cp linux/* $ARTIFACT_DIR
+    - Copy-Item linux/* $ARTIFACT_DIR
 
 deploy_windows:
   stage: deploy
@@ -64,4 +64,4 @@ deploy_windows:
   script:
     - if (Test-Path $ARTIFACT_DIR ) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
     - New-Item -ItemType "directory" -Path $ARTIFACT_DIR -Force
-    - Copy-Item cp linux/* $ARTIFACT_DIR
+    - Copy-Item linux/* $ARTIFACT_DIR
