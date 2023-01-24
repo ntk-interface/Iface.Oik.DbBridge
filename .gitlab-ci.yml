@@ -47,8 +47,11 @@ deploy_linux:
 
   dependencies:
     - build_linux
+  allow_failure: true
   script:
-    - Remove-Item $ARTIFACT_DIR -Recurse -ErrorAction Continue | New-Item $ARTIFACT_DIR | cp linux/* $ARTIFACT_DIR
+    - Remove-Item $ARTIFACT_DIR -Recurse -ErrorAction Continue 
+    - New-Item $ARTIFACT_DIR 
+    - Copy-Item cp linux/* $ARTIFACT_DIR
 
 deploy_windows:
   stage: deploy
@@ -59,7 +62,8 @@ deploy_windows:
 
   dependencies:
     - build_windows
+  allow_failure: true
   script:
-    - Get-ChildItem $ARTIFACT_DIR -Recurse -ErrorAction SilentlyContinue | Remove-Item
-    - mkdir -p $ARTIFACT_DIR 
-    - cp windows/* $ARTIFACT_DIR
+    - Remove-Item $ARTIFACT_DIR -Recurse -ErrorAction Continue 
+    - New-Item $ARTIFACT_DIR 
+    - Copy-Item cp linux/* $ARTIFACT_DIR
