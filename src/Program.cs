@@ -15,7 +15,7 @@ namespace OikTask
         {
             // требуется для работы с кодировкой Win-1251
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            if (Environment.GetCommandLineArgs().Length < 2)
+            if (args.Length < 2)
             {
                 Console.WriteLine("\nПрограмма обмена данными между \"ОИК Диспетчер\" и сторонними СУБД\n\nИспользование:");
                 Console.WriteLine("{0} сервер_тм компьютер_оик /pпериод_запуска /dтип,сервер,база,пользователь,пароль\n",
@@ -40,10 +40,9 @@ namespace OikTask
             int _period = 10;
             int _offset = 0;
 
-            var commandLineArgs = Environment.GetCommandLineArgs();
-            for (int i = 0; i < commandLineArgs.Length; i++)
+            for (int i = 0; i < args.Length; i++)
             {
-                var arg = commandLineArgs[i];
+                var arg = args[i];
                 if (arg.StartsWith("/f", StringComparison.OrdinalIgnoreCase))  // Файл конфигурации
                 {
                     remoteConfFile = arg[2..];
