@@ -34,12 +34,13 @@ namespace OikTask
 
                 Environment.Exit(-1);
             }
-            string _Pipe = "TMS", _Host = ".", _User = "", _Password = "", remoteConfFile = "";
+            string _Pipe = "TMS", _Host = ".", _User = "", _Password = "";
             string _connectionString = "";
             string _aSQL = "";
             int _period = 10;
             int _offset = 0;
 
+            string remoteConfFile = "_" + Path.GetFileNameWithoutExtension(Environment.ProcessPath) + ".cfg";
             for (int i = 0; i < args.Length; i++)
             {
                 var arg = args[i];
@@ -78,15 +79,11 @@ namespace OikTask
                 }
                 else
                 {
-                    if (i == 0) // имя программы
-                    {
-                        remoteConfFile = "_" + Path.GetFileNameWithoutExtension(arg) + ".cfg";
-                    }
-                    else if (i == 1) // первый параметр - тм-сервер
+                    if (i == 0) // первый параметр - тм-сервер
                     {
                         _Pipe = arg;
                     }
-                    else if (i == 2) // второй параметр - компьютер
+                    else if (i == 1) // второй параметр - компьютер
                     {
                         _Host = arg;
                     }
