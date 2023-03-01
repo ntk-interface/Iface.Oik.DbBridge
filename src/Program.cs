@@ -1,4 +1,4 @@
-﻿using Iface.Oik.Tm.Api;
+using Iface.Oik.Tm.Api;
 using Iface.Oik.Tm.Helpers;
 using Iface.Oik.Tm.Interfaces;
 using Iface.Oik.Tm.Native.Api;

@@ -44,7 +44,7 @@ namespace OikTask
         {
             if (connectionString == null)
             {
-                Tms.PrintError("Не заданы параметры соединения (/dтип,сервер,бд,пользователь,пароль)");
+                Tms.PrintError("РќРµ Р·Р°РґР°РЅС‹ РїР°СЂР°РјРµС‚СЂС‹ СЃРѕРµРґРёРЅРµРЅРёСЏ (/dС‚РёРї,СЃРµСЂРІРµСЂ,Р±Рґ,РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ,РїР°СЂРѕР»СЊ)");
                 return;
             }
             var connection_params = connectionString.Split(',');
@@ -54,7 +54,7 @@ namespace OikTask
             string dbUserID = connection_params.ElementAtOrDefault(3) ?? "";
             string dbPassword = connection_params.ElementAtOrDefault(4) ?? "";
 
-            // Создание специфических объектов БД в зависимости от типа
+            // РЎРѕР·РґР°РЅРёРµ СЃРїРµС†РёС„РёС‡РµСЃРєРёС… РѕР±СЉРµРєС‚РѕРІ Р‘Р” РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ С‚РёРїР°
             switch (dbType.ToUpper())
             {
                 case "MS":
@@ -89,10 +89,10 @@ namespace OikTask
                     dbCommand = (dbConnection as NpgsqlConnection)!.CreateCommand();
                     break;
                 default:
-                    Tms.PrintError("Неподдерживаемый тип базы данных (" + dbType + ")");
+                    Tms.PrintError("РќРµРїРѕРґРґРµСЂР¶РёРІР°РµРјС‹Р№ С‚РёРї Р±Р°Р·С‹ РґР°РЅРЅС‹С… (" + dbType + ")");
                     return;
             }
-            // Запуск исполнения по границе периода
+            // Р—Р°РїСѓСЃРє РёСЃРїРѕР»РЅРµРЅРёСЏ РїРѕ РіСЂР°РЅРёС†Рµ РїРµСЂРёРѕРґР°
             lasttime = GetSeconds() / period;
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -122,7 +122,7 @@ namespace OikTask
                 {
                     if (statement.Trim().IsNullOrEmpty())
                     { continue; }
-                    // Части выражения, выделенные %..%, обрабатываются на сервере ТМ
+                    // Р§Р°СЃС‚Рё РІС‹СЂР°Р¶РµРЅРёСЏ, РІС‹РґРµР»РµРЅРЅС‹Рµ %..%, РѕР±СЂР°Р±Р°С‚С‹РІР°СЋС‚СЃСЏ РЅР° СЃРµСЂРІРµСЂРµ РўРњ
                     string parsed_statement = "";
                     var tokens = statement.Split("%");
                     for (int i = 0; i < tokens.Length; i++)
@@ -141,7 +141,7 @@ namespace OikTask
                             Tms.PrintDebug(tokens[i] + "=" + res);
                         }
                     }
-                    Tms.PrintDebug("Исполняем SQL: " + parsed_statement);
+                    Tms.PrintDebug("РСЃРїРѕР»РЅСЏРµРј SQL: " + parsed_statement);
                     dbCommand.CommandText = parsed_statement;
                     await dbConnection.OpenAsync().ConfigureAwait(false);
                     if (parsed_statement.Trim().StartsWith("select", StringComparison.OrdinalIgnoreCase))
@@ -161,7 +161,7 @@ namespace OikTask
                                 string ch = dr[1].ToString() ?? ""; if (!short.TryParse(ch, out var i_ch)) i_ch = -1;
                                 string rtu = dr[2].ToString() ?? ""; if (!short.TryParse(rtu, out var i_rtu)) i_rtu = -1;
                                 string point = dr[3].ToString() ?? ""; if (!short.TryParse(point, out var i_point)) i_point = -1;
-                                // заменим запятую-разделитель целой и дробной части на точку, чтобы не зависеть от настроек региона
+                                // Р·Р°РјРµРЅРёРј Р·Р°РїСЏС‚СѓСЋ-СЂР°Р·РґРµР»РёС‚РµР»СЊ С†РµР»РѕР№ Рё РґСЂРѕР±РЅРѕР№ С‡Р°СЃС‚Рё РЅР° С‚РѕС‡РєСѓ, С‡С‚РѕР±С‹ РЅРµ Р·Р°РІРёСЃРµС‚СЊ РѕС‚ РЅР°СЃС‚СЂРѕРµРє СЂРµРіРёРѕРЅР°
                                 string value = (dr[4].ToString() ?? "").Replace(',','.');
                                 switch (c_type.ToUpper())
                                 {
@@ -192,7 +192,7 @@ namespace OikTask
                     else
                     {
                         int number = await dbCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
-                        Tms.PrintDebug("Изменено объектов: " + number.ToString());
+                        Tms.PrintDebug("РР·РјРµРЅРµРЅРѕ РѕР±СЉРµРєС‚РѕРІ: " + number.ToString());
                     }
                     dbConnection.Close();
                 }
