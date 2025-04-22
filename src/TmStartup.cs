@@ -79,8 +79,7 @@ public class TmStartup : BackgroundService
   {
     while (!stoppingToken.IsCancellationRequested)
     {
-      if (await Task.Run(() => Tms.StopEventSignalDuringWait(_stopEventHandle, 1000), stoppingToken)
-                    .ConfigureAwait(false))
+      if (await Task.Run(() => Tms.StopEventSignalDuringWait(_stopEventHandle, 2000), stoppingToken))
       {
         Tms.PrintMessage("Получено сообщение об остановке со стороны сервера");
         _applicationLifetime.StopApplication();
@@ -98,6 +97,6 @@ public class TmStartup : BackgroundService
 
     Tms.PrintMessage("Задача будет закрыта");
 
-    await base.StopAsync(cancellationToken).ConfigureAwait(false);
+    await base.StopAsync(cancellationToken);
   }
 }

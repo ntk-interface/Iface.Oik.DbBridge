@@ -9,7 +9,7 @@ using Dapper;
 using Iface.Oik.Tm.Helpers;
 using Iface.Oik.Tm.Interfaces;
 using Microsoft.Extensions.Hosting;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 using Npgsql;
 
 namespace Iface.Oik.DbBridge;
@@ -21,8 +21,7 @@ public class Worker : BackgroundService
   private          string       _connectionString = string.Empty;
   private readonly List<string> _commandTexts     = new();
 
-  private const int  WorkerDelay = 100;
-  private       long _lastRunTime;
+  private long _lastRunTime;
 
 
   private readonly IOikDataApi              _api;
@@ -43,7 +42,7 @@ public class Worker : BackgroundService
     {
       _config = ConfigLoader.Load();
 
-      await ValidateConnectionAndThrow();
+      await ValidateDbConnectionAndThrow();
 
       if (string.IsNullOrEmpty(_config.SqlText))
       {
@@ -65,11 +64,11 @@ public class Worker : BackgroundService
   }
 
 
-  private async Task ValidateConnectionAndThrow()
+  private async Task ValidateDbConnectionAndThrow()
   {
     _connectionString = PrepareConnectionString();
 
-    await using var db = PrepareConnection();
+    await using var db = GetDbConnection();
     await db.OpenAsync();
   }
 
@@ -96,7 +95,7 @@ public class Worker : BackgroundService
                SslMode  = MySqlSslMode.Disabled,
              }.ConnectionString,
 
-             "POSTGRESQL" => new NpgsqlConnectionStringBuilder
+             "PGSQL" => new NpgsqlConnectionStringBuilder
              {
                Host     = _config.DbHost,
                Database = _config.DbDatabase,
@@ -110,24 +109,14 @@ public class Worker : BackgroundService
   }
 
 
-  private DbConnection PrepareConnection()
+  private DbConnection GetDbConnection()
   {
     return _config.DbType.ToUpper() switch
            {
              "MSSQL" => new SqlConnection(_connectionString),
-
              "MYSQL" => new MySqlConnection(_connectionString),
-
-             "POSTGRESQL" => new NpgsqlConnection(new NpgsqlConnectionStringBuilder
-             {
-               Host     = _config.DbHost,
-               Database = _config.DbDatabase,
-               Username = _config.DbUser,
-               Password = _config.DbPassword,
-               SslMode  = SslMode.Disable,
-             }.ConnectionString),
-
-             _ => throw new Exception($"Неизвестный тип базы данных {_config.DbType}"),
+             "PGSQL" => new NpgsqlConnection(_connectionString),
+             _       => throw new Exception($"Неизвестный тип базы данных {_config.DbType}"),
            };
   }
 
@@ -155,7 +144,7 @@ public class Worker : BackgroundService
       }
 
       await DoWork();
-      await Task.Delay(WorkerDelay, stoppingToken);
+      await Task.Delay(100, stoppingToken);
     }
 
     long GetSeconds() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -164,7 +153,7 @@ public class Worker : BackgroundService
 
   private async Task DoWork()
   {
-    await using var db = PrepareConnection();
+    await using var db = GetDbConnection();
 
     try
     {
@@ -191,7 +180,7 @@ public class Worker : BackgroundService
           }
         }
 
-        Tms.PrintDebug("Исполняем SQL: " + commandText);
+        Tms.PrintDebug("Исполняется SQL: " + commandText);
 
         if (commandText.Trim().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
         {
@@ -208,7 +197,7 @@ public class Worker : BackgroundService
 
               case "#TT":
                 await _api.SetAnalog(r.Ch, r.Rtu, r.Point, r.Value);
-                Tms.PrintDebug($"#TC{r.Ch}:{r.Rtu}:{r.Point} <- {r.Value}");
+                Tms.PrintDebug($"#TT{r.Ch}:{r.Rtu}:{r.Point} <- {r.Value}");
                 break;
 
               default:
