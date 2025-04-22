@@ -58,9 +58,10 @@ public static class ConfigLoader
           var dbParts = parts[1].Split(',');
           config.DbType     = dbParts.ElementAtOrDefault(0) ?? string.Empty;
           config.DbHost     = dbParts.ElementAtOrDefault(1) ?? string.Empty;
-          config.DbDatabase = dbParts.ElementAtOrDefault(2) ?? string.Empty;
-          config.DbUser     = dbParts.ElementAtOrDefault(3) ?? string.Empty;
-          config.DbPassword = dbParts.ElementAtOrDefault(4) ?? string.Empty;
+          config.DbPort     = int.Parse(dbParts.ElementAtOrDefault(2) ?? string.Empty);
+          config.DbDatabase = dbParts.ElementAtOrDefault(3) ?? string.Empty;
+          config.DbUser     = dbParts.ElementAtOrDefault(4) ?? string.Empty;
+          config.DbPassword = dbParts.ElementAtOrDefault(5) ?? string.Empty;
           break;
       }
     }

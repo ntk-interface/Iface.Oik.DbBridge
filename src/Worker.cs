@@ -42,8 +42,6 @@ public class Worker : BackgroundService
     {
       _config = ConfigLoader.Load();
 
-      await ValidateDbConnectionAndThrow();
-
       if (string.IsNullOrEmpty(_config.SqlText))
       {
         throw new Exception("Не задан текст SQL запроса");
@@ -52,7 +50,11 @@ public class Worker : BackgroundService
       _commandTexts.AddRange(_config.SqlText.Split(';', StringSplitOptions.TrimEntries |
                                                         StringSplitOptions.RemoveEmptyEntries));
 
-      Tms.PrintDebug("Конфигурация загружена");
+      Tms.PrintMessage("Загружена конфигурация");
+
+      await ValidateDbConnectionAndThrow();
+
+      Tms.PrintMessage("Соединение с базой данных проверено, начинаю работу");
 
       await base.StartAsync(cancellationToken);
     }
@@ -79,7 +81,7 @@ public class Worker : BackgroundService
            {
              "MSSQL" => new SqlConnectionStringBuilder
              {
-               DataSource             = _config.DbHost,
+               DataSource             = $"{_config.DbHost},{_config.DbPort}",
                InitialCatalog         = _config.DbDatabase,
                UserID                 = _config.DbUser,
                Password               = _config.DbPassword,
@@ -89,6 +91,7 @@ public class Worker : BackgroundService
              "MYSQL" => new MySqlConnectionStringBuilder
              {
                Server   = _config.DbHost,
+               Port     = (uint)_config.DbPort,
                Database = _config.DbDatabase,
                UserID   = _config.DbUser,
                Password = _config.DbPassword,
@@ -98,6 +101,7 @@ public class Worker : BackgroundService
              "PGSQL" => new NpgsqlConnectionStringBuilder
              {
                Host     = _config.DbHost,
+               Port     = _config.DbPort,
                Database = _config.DbDatabase,
                Username = _config.DbUser,
                Password = _config.DbPassword,

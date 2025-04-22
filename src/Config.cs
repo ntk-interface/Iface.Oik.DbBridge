@@ -7,6 +7,7 @@ public class Config
 
   public string DbType     { get; set; } = string.Empty;
   public string DbHost     { get; set; } = string.Empty;
+  public int    DbPort     { get; set; }
   public string DbDatabase { get; set; } = string.Empty;
   public string DbUser     { get; set; } = string.Empty;
   public string DbPassword { get; set; } = string.Empty;
