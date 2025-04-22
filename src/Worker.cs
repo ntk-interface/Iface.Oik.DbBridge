@@ -1,212 +1,231 @@
-using Iface.Oik.Tm.Helpers;
-using Iface.Oik.Tm.Interfaces;
-using Iface.Oik.Tm.Utils;
-using Microsoft.Extensions.Hosting;
-using MySql.Data.MySqlClient;
-using Npgsql;
-using System.Data;
+using System;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
+using Dapper;
+using Iface.Oik.Tm.Helpers;
+using Iface.Oik.Tm.Interfaces;
+using Microsoft.Extensions.Hosting;
+using MySql.Data.MySqlClient;
+using Npgsql;
 
-namespace OikTask
+namespace Iface.Oik.DbBridge;
+
+public class Worker : BackgroundService
 {
-    public class Worker : BackgroundService
+  private Config _config = default!;
+
+  private          string       _connectionString = string.Empty;
+  private readonly List<string> _commandTexts     = new();
+
+  private const int  WorkerDelay = 100;
+  private       long _lastRunTime;
+
+
+  private readonly IOikDataApi              _api;
+  private readonly IHostApplicationLifetime _applicationLifetime;
+
+
+  public Worker(IOikDataApi              api,
+                IHostApplicationLifetime applicationLifetime)
+  {
+    _api                 = api;
+    _applicationLifetime = applicationLifetime;
+  }
+
+
+  public override async Task StartAsync(CancellationToken cancellationToken)
+  {
+    try
     {
-        private static string? aSQL;
-        private static string? connectionString;
-        private static int period = 10;
-        private static int offset = 0;
+      _config = ConfigLoader.Load();
 
-        private const int WorkerDelay = 100;
-        private long lasttime;
+      await ValidateConnectionAndThrow();
 
-        private DbConnection? dbConnection;
-        private DbCommand? dbCommand;
+      if (string.IsNullOrEmpty(_config.SqlText))
+      {
+        throw new Exception("Не задан текст SQL запроса");
+      }
 
-        private readonly ICommonInfrastructure _infr;
-        private readonly IOikDataApi _api;
+      _commandTexts.AddRange(_config.SqlText.Split(';', StringSplitOptions.TrimEntries |
+                                                        StringSplitOptions.RemoveEmptyEntries));
 
-        public Worker(ICommonInfrastructure infr,
-                      IOikDataApi api)
-        {
-            _infr = infr;
-            _api = api;
-        }
-        public static void Initialize(string _connectionString, string _aSQL, int _period, int _offset)
-        {
-            connectionString = _connectionString;
-            aSQL = _aSQL;
-            period = _period;
-            offset = _offset;
-        }
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            if (connectionString == null)
-            {
-                Tms.PrintError("Не заданы параметры соединения (/dтип,сервер,бд,пользователь,пароль)");
-                return;
-            }
-            var connection_params = connectionString.Split(',');
-            string dbType = connection_params.ElementAtOrDefault(0) ?? "";
-            string dbServer = connection_params.ElementAtOrDefault(1) ?? "";
-            string dbDatabase = connection_params.ElementAtOrDefault(2) ?? "";
-            string dbUserID = connection_params.ElementAtOrDefault(3) ?? "";
-            string dbPassword = connection_params.ElementAtOrDefault(4) ?? "";
+      Tms.PrintDebug("Конфигурация загружена");
 
-            // Создание специфических объектов БД в зависимости от типа
-            switch (dbType.ToUpper())
-            {
-                case "MS":
-                    dbConnection = new SqlConnection(new SqlConnectionStringBuilder
-                    {
-                        DataSource = dbServer,
-                        InitialCatalog = dbDatabase,
-                        UserID = dbUserID,
-                        Password = dbPassword,
-                        TrustServerCertificate = true
-                    }.ConnectionString);
-                    dbCommand = (dbConnection as SqlConnection)!.CreateCommand();                   
-                    break;
-                case "MY":
-                    dbConnection = new MySqlConnection(new MySqlConnectionStringBuilder
-                    {
-                        Server = dbServer,
-                        Database = dbDatabase,
-                        UserID = dbUserID,
-                        Password = dbPassword
-                    }.ConnectionString);
-                    dbCommand = (dbConnection as MySqlConnection)!.CreateCommand();
-                    break;
-                case "PG":
-                    dbConnection = new NpgsqlConnection(new NpgsqlConnectionStringBuilder
-                    {
-                        Host = dbServer,
-                        Database = dbDatabase,
-                        Username = dbUserID,
-                        Password = dbPassword
-                    }.ConnectionString);
-                    dbCommand = (dbConnection as NpgsqlConnection)!.CreateCommand();
-                    break;
-                default:
-                    Tms.PrintError("Неподдерживаемый тип базы данных (" + dbType + ")");
-                    return;
-            }
-            // Запуск исполнения по границе периода
-            lasttime = GetSeconds() / period;
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                if (period >= 1)
-                {
-                    long curtime = (GetSeconds() + offset) / period;
-                    if (curtime == lasttime)
-                        continue;
-                    lasttime = curtime;
-                    if (((GetSeconds() + offset) % period) > 5)
-                        continue;
-                }
-                await DoWork().ConfigureAwait(false);
-                await Task.Delay(WorkerDelay, stoppingToken).ConfigureAwait(false);
-            }
-            dbCommand?.Dispose();
-            dbConnection?.Dispose();
-        }
-        async Task DoWork()
-        {
-            if ((dbConnection == null) || (dbCommand == null) || (aSQL == null))
-                return;
-            try
-            {
-                var statements = aSQL.Split(';');
-                foreach (var statement in statements)
-                {
-                    if (statement.Trim().IsNullOrEmpty())
-                    { continue; }
-                    // Части выражения, выделенные %..%, обрабатываются на сервере ТМ
-                    string parsed_statement = "";
-                    var tokens = statement.Split("%");
-                    for (int i = 0; i < tokens.Length; i++)
-                    {
-                        if ((i % 2) == 0)
-                        {
-                            parsed_statement += tokens[i];
-                        }
-                        else
-                        {
-                            string res = await _api.GetExpressionResult(tokens[i]).ConfigureAwait(false);
-                            if (float.TryParse(res, NumberStyles.Any, CultureInfo.InvariantCulture, out var f_res))
-                                parsed_statement += res;
-                            else
-                                parsed_statement += "ERR";
-                            Tms.PrintDebug(tokens[i] + "=" + res);
-                        }
-                    }
-                    Tms.PrintDebug("Исполняем SQL: " + parsed_statement);
-                    dbCommand.CommandText = parsed_statement;
-                    await dbConnection.OpenAsync().ConfigureAwait(false);
-                    if (parsed_statement.Trim().StartsWith("select", StringComparison.OrdinalIgnoreCase))
-                    {
-                        DbDataReader dr = await dbCommand.ExecuteReaderAsync().ConfigureAwait(false);
-                        while (dr.Read())
-                        {
-                            string line = "";
-                            for (int i = 0; i < dr.FieldCount; i++)
-                            {
-                                line += dr[i].ToString() + '\t';
-                            }
-                            Tms.PrintDebug(line);
-                            if (dr.FieldCount == 5)
-                            {
-                                string c_type = dr[0].ToString() ?? "";
-                                string ch = dr[1].ToString() ?? ""; if (!short.TryParse(ch, out var i_ch)) i_ch = -1;
-                                string rtu = dr[2].ToString() ?? ""; if (!short.TryParse(rtu, out var i_rtu)) i_rtu = -1;
-                                string point = dr[3].ToString() ?? ""; if (!short.TryParse(point, out var i_point)) i_point = -1;
-                                // заменим запятую-разделитель целой и дробной части на точку, чтобы не зависеть от настроек региона
-                                string value = (dr[4].ToString() ?? "").Replace(',','.');
-                                switch (c_type.ToUpper())
-                                {
-                                    case "#TT":
-                                        if (float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var f_value))
-                                        {
-                                            await _api.SetAnalog(i_ch, i_rtu, i_point, f_value).ConfigureAwait(false);
-                                        }
-                                        else
-                                        {
-                                            Tms.Native.TmcSetAnalogFlags(_infr.TmCid, i_ch, i_rtu, i_point, (short)TmFlags.Unreliable);
-                                        }
-                                        break;
-                                    case "#TC":
-                                        if (short.TryParse(value, out var i_value))
-                                        {
-                                            await _api.SetStatus(i_ch, i_rtu, i_point, i_value).ConfigureAwait(false);
-                                        }
-                                        else
-                                        {
-                                            Tms.Native.TmcSetStatusFlags(_infr.TmCid, i_ch, i_rtu, i_point, (short)TmFlags.Unreliable);
-                                        }
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        int number = await dbCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
-                        Tms.PrintDebug("Изменено объектов: " + number.ToString());
-                    }
-                    dbConnection.Close();
-                }
-            }
-            catch (Exception ex)
-            {
-                Tms.PrintError(ex.Message);
-                dbConnection.Close();
-            }
-        }
-        public static long GetSeconds()
-        {
-            TimeSpan timeSpan = DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0);
-            return (long)timeSpan.TotalSeconds;
-        }
+      await base.StartAsync(cancellationToken);
     }
+    catch (Exception ex)
+    {
+      Tms.PrintError($"Ошибка: {ex.Message}");
+      _applicationLifetime.StopApplication();
+    }
+  }
+
+
+  private async Task ValidateConnectionAndThrow()
+  {
+    _connectionString = PrepareConnectionString();
+
+    await using var db = PrepareConnection();
+    await db.OpenAsync();
+  }
+
+
+  private string PrepareConnectionString()
+  {
+    return _config.DbType.ToUpper() switch
+           {
+             "MSSQL" => new SqlConnectionStringBuilder
+             {
+               DataSource             = _config.DbHost,
+               InitialCatalog         = _config.DbDatabase,
+               UserID                 = _config.DbUser,
+               Password               = _config.DbPassword,
+               TrustServerCertificate = true
+             }.ConnectionString,
+
+             "MYSQL" => new MySqlConnectionStringBuilder
+             {
+               Server   = _config.DbHost,
+               Database = _config.DbDatabase,
+               UserID   = _config.DbUser,
+               Password = _config.DbPassword,
+               SslMode  = MySqlSslMode.Disabled,
+             }.ConnectionString,
+
+             "POSTGRESQL" => new NpgsqlConnectionStringBuilder
+             {
+               Host     = _config.DbHost,
+               Database = _config.DbDatabase,
+               Username = _config.DbUser,
+               Password = _config.DbPassword,
+               SslMode  = SslMode.Disable,
+             }.ConnectionString,
+
+             _ => throw new Exception($"Неизвестный тип базы данных {_config.DbType}"),
+           };
+  }
+
+
+  private DbConnection PrepareConnection()
+  {
+    return _config.DbType.ToUpper() switch
+           {
+             "MSSQL" => new SqlConnection(_connectionString),
+
+             "MYSQL" => new MySqlConnection(_connectionString),
+
+             "POSTGRESQL" => new NpgsqlConnection(new NpgsqlConnectionStringBuilder
+             {
+               Host     = _config.DbHost,
+               Database = _config.DbDatabase,
+               Username = _config.DbUser,
+               Password = _config.DbPassword,
+               SslMode  = SslMode.Disable,
+             }.ConnectionString),
+
+             _ => throw new Exception($"Неизвестный тип базы данных {_config.DbType}"),
+           };
+  }
+
+
+  protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+  {
+    // TODO переделать на более понятный вариант
+    _lastRunTime = GetSeconds() / _config.WorkPeriod;
+
+    while (!stoppingToken.IsCancellationRequested)
+    {
+      if (_config.WorkPeriod >= 1)
+      {
+        var currentTime = (GetSeconds() + _config.WorkOffset) / _config.WorkPeriod;
+        if (currentTime == _lastRunTime)
+        {
+          continue;
+        }
+
+        _lastRunTime = currentTime;
+        if (((GetSeconds() + _config.WorkOffset) % _config.WorkPeriod) > 5)
+        {
+          continue;
+        }
+      }
+
+      await DoWork();
+      await Task.Delay(WorkerDelay, stoppingToken);
+    }
+
+    long GetSeconds() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+  }
+
+
+  private async Task DoWork()
+  {
+    await using var db = PrepareConnection();
+
+    try
+    {
+      await db.OpenAsync();
+
+      foreach (var rawCommandText in _commandTexts)
+      {
+        // TODO обрабатывать по-другому это, может через регулярные выражения
+        var commandText = string.Empty;
+        var tokens      = rawCommandText.Split("%");
+        for (var i = 0; i < tokens.Length; i++)
+        {
+          if ((i % 2) == 0)
+          {
+            commandText += tokens[i];
+          }
+          else
+          {
+            var result = await _api.GetExpressionResult(tokens[i]);
+            commandText += float.TryParse(result, NumberStyles.Any, CultureInfo.InvariantCulture, out _)
+                             ? result
+                             : "ERR";
+            Tms.PrintDebug($"{tokens[i]} -> {result}");
+          }
+        }
+
+        Tms.PrintDebug("Исполняем SQL: " + commandText);
+
+        if (commandText.Trim().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+        {
+          var rows = await db.QueryAsync<(string Type, int Ch, int Rtu, int Point, float Value)>(commandText);
+
+          foreach (var r in rows)
+          {
+            switch (r.Type)
+            {
+              case "#TC":
+                await _api.SetStatus(r.Ch, r.Rtu, r.Point, (int)r.Value);
+                Tms.PrintDebug($"#TC{r.Ch}:{r.Rtu}:{r.Point} <- {(int)r.Value}");
+                break;
+
+              case "#TT":
+                await _api.SetAnalog(r.Ch, r.Rtu, r.Point, r.Value);
+                Tms.PrintDebug($"#TC{r.Ch}:{r.Rtu}:{r.Point} <- {r.Value}");
+                break;
+
+              default:
+                throw new Exception($"Неизвестный тип данных в колонке: {r.Type}");
+            }
+          }
+        }
+        else
+        {
+          var rowsCount = await db.ExecuteAsync(commandText);
+          Tms.PrintDebug($"Обработано строк: {rowsCount}");
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      Tms.PrintError(ex.Message);
+    }
+  }
 }
