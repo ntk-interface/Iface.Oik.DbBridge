@@ -54,7 +54,6 @@ public static class ConfigLoader
           break;
 
         case "db":
-        case "database":
           var dbParts = parts[1].Split(',');
           config.DbType     = dbParts.ElementAtOrDefault(0) ?? string.Empty;
           config.DbHost     = dbParts.ElementAtOrDefault(1) ?? string.Empty;
