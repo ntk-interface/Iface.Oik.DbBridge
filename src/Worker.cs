@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SqlClient;
-using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
@@ -165,24 +165,14 @@ public class Worker : BackgroundService
 
       foreach (var rawCommandText in _commandTexts)
       {
-        // TODO обрабатывать по-другому это, может через регулярные выражения
-        var commandText = string.Empty;
-        var tokens      = rawCommandText.Split("%");
-        for (var i = 0; i < tokens.Length; i++)
-        {
-          if ((i % 2) == 0)
-          {
-            commandText += tokens[i];
-          }
-          else
-          {
-            var result = await _api.GetExpressionResult(tokens[i]);
-            commandText += float.TryParse(result, NumberStyles.Any, CultureInfo.InvariantCulture, out _)
-                             ? result
-                             : "ERR";
-            Tms.PrintDebug($"{tokens[i]} -> {result}");
-          }
-        }
+        // подменяем выражения внутри процентов на результат выражения, например %TT20:1:1% -> 30.156
+        var commandText = Regex.Replace(rawCommandText, @"%([^%]+)%", m =>
+                                        {
+                                          var expression       = m.Groups[1].Value;
+                                          var expressionResult = _api.GetExpressionResultSync(expression);
+                                          Tms.PrintDebug($"{expression} -> {expressionResult}");
+                                          return expressionResult;
+                                        });
 
         Tms.PrintDebug("Исполняется SQL: " + commandText);
 
