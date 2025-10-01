@@ -6,7 +6,9 @@ namespace Iface.Oik.DbBridge;
 
 public static class ConfigLoader
 {
-  public static string SqlTextPath { get; set; } = string.Empty;
+  public static string SqlTextPath { get; set; } = Path.Combine(AppContext.BaseDirectory,
+                                                                "sql",
+                                                                "config.sql");
   
   
   public static Config Load()

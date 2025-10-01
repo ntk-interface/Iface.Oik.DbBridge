@@ -1,65 +1,45 @@
+variables:
+  MAJOR_VERSION: 25
+  FULL_BUILD_VERSION: '${MAJOR_VERSION}.${CI_PIPELINE_IID}'
+
+  APP_NAME: 'Iface.Oik.DbBridge'
+  BINARY_PATH: 'bin'
+  BINARY_PATH_WINDOWS: '${BINARY_PATH}/Windows'
+  BINARY_PATH_LINUX: '${BINARY_PATH}/Linux'
+  RELEASE_NAME: '${APP_NAME}.${FULL_BUILD_VERSION}'
+  RELEASE_NAME_WINDOWS: '${RELEASE_NAME}.zip'
+  RELEASE_NAME_LINUX: '${RELEASE_NAME}.tar.gz'
+  
+  DEPLOY_PATH: 'C:\Artifacts\Iface.Oik.DbBridge'
+
 workflow:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-stages:
-  - build
-  - deploy
-
-build_linux:
+build:
   stage: build
   tags:
-    - linux
-  variables:
-    GIT_STRATEGY: fetch
+    - windows
   script:
-    - dotnet publish -c Release -r linux-x64 --output linux --no-self-contained 
-  
+    - 'dotnet publish -c Release -r win-x64 -p:CopyOutputSymbolsToPublishDirectory=false -p:PublishSingleFile=true --self-contained false -o ${BINARY_PATH_WINDOWS}'
+    - 'dotnet publish -c Release -r linux-x64 -p:CopyOutputSymbolsToPublishDirectory=false -p:PublishSingleFile=true --self-contained false -o ${BINARY_PATH_LINUX}'
+    # создаем пустой каталог для конфигураций
+    - 'New-Item -ItemType Directory -Path ${BINARY_PATH_WINDOWS}/sql'
+    - 'New-Item -ItemType Directory -Path ${BINARY_PATH_LINUX}/sql'
+    # копируем каталог с примерами конфигураций
+    - 'Copy-Item -Path sample_sql -Destination ${BINARY_PATH_WINDOWS} -Recurse'
+    - 'Copy-Item -Path sample_sql -Destination ${BINARY_PATH_LINUX} -Recurse'
   artifacts:
-    name: db-bridge.linux
-    expire_in: 1 day
+    name: '${RELEASE_NAME}'
     paths:
-      - linux/
-        
-build_windows:
-  stage: build
-  tags:
-    - linux
-  variables:
-    GIT_STRATEGY: fetch
-  script:
-    - dotnet publish -c Release -r win-x64 --output windows --no-self-contained
-  
-  artifacts:
-    name: db-bridge.windows
-    expire_in: 1 day
-    paths:
-      - windows/
+      - '${BINARY_PATH}/**/*'
 
-deploy_linux:
+deploy:
   stage: deploy
   tags:
-    - win10
+    - windows
   variables:
-    ARTIFACT_DIR: "C:\\Artifacts\\Iface.Oik.DB-bridge\\Linux"
-
-  dependencies:
-    - build_linux
+    GIT_STRATEGY: none
   script:
-    - if (Test-Path $ARTIFACT_DIR ) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
-    - New-Item -ItemType "directory" -Path $ARTIFACT_DIR -Force
-    - Copy-Item linux/* $ARTIFACT_DIR
-
-deploy_windows:
-  stage: deploy
-  tags:
-    - win10
-  variables:
-    ARTIFACT_DIR: "C:\\Artifacts\\Iface.Oik.DB-bridge\\Windows"
-
-  dependencies:
-    - build_windows
-  script:
-    - if (Test-Path $ARTIFACT_DIR ) { Remove-Item $ARTIFACT_DIR -Recurse -Force }
-    - New-Item -ItemType "directory" -Path $ARTIFACT_DIR -Force
-    - Copy-Item windows/* $ARTIFACT_DIR
+    - '7z a -tzip ${DEPLOY_PATH}/${RELEASE_NAME_WINDOWS} ./${BINARY_PATH_WINDOWS}/*'
+    - 'tar -cvzf ${DEPLOY_PATH}/${RELEASE_NAME_LINUX} -C ${BINARY_PATH_LINUX} .'
