@@ -132,6 +132,7 @@ public class Worker : BackgroundService
 
     while (!stoppingToken.IsCancellationRequested)
     {
+      await Task.Delay(100, stoppingToken); // TODO убрать такую задержку из-за бесконечного цикла
       if (_config.WorkPeriod >= 1)
       {
         var currentTime = (GetSeconds() + _config.WorkOffset) / _config.WorkPeriod;
@@ -178,7 +179,8 @@ public class Worker : BackgroundService
 
         if (commandText.Trim().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
         {
-          var rows = await db.QueryAsync<(string Type, int Ch, int Rtu, int Point, float Value)>(commandText);
+          var rows = await db.QueryAsync<(string Type, int Ch, int Rtu, int Point, float Value)>(
+                       new CommandDefinition(commandText, cancellationToken: stoppingToken));
 
           foreach (var r in rows)
           {
