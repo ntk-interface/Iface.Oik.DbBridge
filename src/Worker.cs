@@ -52,7 +52,7 @@ public class Worker : BackgroundService
 
       Tms.PrintMessage("Загружена конфигурация");
 
-      await ValidateDbConnectionAndThrow();
+      await ValidateDbConnectionAndThrow(cancellationToken);
 
       Tms.PrintMessage("Соединение с базой данных проверено, начинаю работу");
 
@@ -66,12 +66,12 @@ public class Worker : BackgroundService
   }
 
 
-  private async Task ValidateDbConnectionAndThrow()
+  private async Task ValidateDbConnectionAndThrow(CancellationToken cancellationToken)
   {
     _connectionString = PrepareConnectionString();
 
     await using var db = GetDbConnection();
-    await db.OpenAsync();
+    await db.OpenAsync(cancellationToken);
   }
 
 
@@ -127,7 +127,7 @@ public class Worker : BackgroundService
 
   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
   {
-    // TODO переделать на более понятный вариант
+    // TODO переделать на нормальный вариант, сейчас долбит в бесконечном цикле
     _lastRunTime = GetSeconds() / _config.WorkPeriod;
 
     while (!stoppingToken.IsCancellationRequested)
@@ -147,7 +147,7 @@ public class Worker : BackgroundService
         }
       }
 
-      await DoWork();
+      await DoWork(stoppingToken);
       await Task.Delay(100, stoppingToken);
     }
 
@@ -155,13 +155,13 @@ public class Worker : BackgroundService
   }
 
 
-  private async Task DoWork()
+  private async Task DoWork(CancellationToken stoppingToken)
   {
     await using var db = GetDbConnection();
 
     try
     {
-      await db.OpenAsync();
+      await db.OpenAsync(stoppingToken);
 
       foreach (var rawCommandText in _commandTexts)
       {
@@ -201,7 +201,7 @@ public class Worker : BackgroundService
         }
         else
         {
-          var rowsCount = await db.ExecuteAsync(commandText);
+          var rowsCount = await db.ExecuteAsync(new CommandDefinition(commandText, cancellationToken: stoppingToken));
           Tms.PrintDebug($"Обработано строк: {rowsCount}");
         }
       }
