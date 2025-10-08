@@ -132,11 +132,12 @@ public class Worker : BackgroundService
 			try
 			{
 				int delayMs = CalculateDelay();
+				Tms.PrintDebug("Следующий запуск через " + TimeSpan.FromMilliseconds(delayMs).TotalSeconds + " сек");
 				await Task.Delay(delayMs, stoppingToken);
 				if (stoppingToken.IsCancellationRequested)
 					break;
 				
-                Tms.PrintDebug("Следующий запуск через " + TimeSpan.FromMilliseconds(delayMs).TotalSeconds + " сек");
+                
 				await DoWork(stoppingToken);
 			}
 			catch (Exception ex)
@@ -160,7 +161,9 @@ public class Worker : BackgroundService
 		long periods = ticksSinceEpoch / periodTicks;
 		DateTime nextPeriodStart = new DateTime((periods + 1) * periodTicks, DateTimeKind.Local); 
 
-		DateTime nextRun = nextPeriodStart  - offset;
+        DateTime nextRun = nextPeriodStart  - offset;
+
+		Tms.PrintDebug("Следующий запуск в " + nextRun.ToString());
 
 		// Проверка на прошлое
 		if (nextRun <= now)
