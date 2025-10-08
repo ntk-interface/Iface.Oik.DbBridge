@@ -127,36 +127,56 @@ public class Worker : BackgroundService
 
   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
   {
-    // TODO переделать на нормальный вариант, сейчас долбит в бесконечном цикле
-    _lastRunTime = GetSeconds() / _config.WorkPeriod;
+		while (!stoppingToken.IsCancellationRequested)
+		{
+			try
+			{
+				int delayMs = CalculateDelay();
+				await Task.Delay(delayMs, stoppingToken);
+				if (stoppingToken.IsCancellationRequested)
+					break;
+				
+                Tms.PrintDebug("Следующий запуск через " + TimeSpan.FromMilliseconds(delayMs).TotalSeconds + " сек");
+				await DoWork(stoppingToken);
+			}
+			catch (Exception ex)
+			{
+				Tms.PrintDebug($"Ошибка: {ex.Message}");
+			}
 
-    while (!stoppingToken.IsCancellationRequested)
-    {
-      await Task.Delay(100, stoppingToken); // TODO убрать такую задержку из-за бесконечного цикла
-      if (_config.WorkPeriod >= 1)
-      {
-        var currentTime = (GetSeconds() + _config.WorkOffset) / _config.WorkPeriod;
-        if (currentTime == _lastRunTime)
-        {
-          continue;
-        }
+		}
+	}
 
-        _lastRunTime = currentTime;
-        if (((GetSeconds() + _config.WorkOffset) % _config.WorkPeriod) > 5)
-        {
-          continue;
-        }
-      }
+	private int CalculateDelay()
+	{
+		DateTime now = DateTime.Now;
 
-      await DoWork(stoppingToken);
-      await Task.Delay(100, stoppingToken);
-    }
+		TimeSpan period = TimeSpan.FromSeconds(_config.WorkPeriod);
+		TimeSpan offset = TimeSpan.FromSeconds(_config.WorkOffset);
 
-    long GetSeconds() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-  }
+		// Вычисляем ближайшую границу
+		long ticksSinceEpoch = now.Ticks;
+		long periodTicks = period.Ticks;
+		long periods = ticksSinceEpoch / periodTicks;
+		DateTime nextPeriodStart = new DateTime((periods + 1) * periodTicks, DateTimeKind.Local); 
 
+		DateTime nextRun = nextPeriodStart  - offset;
 
-  private async Task DoWork(CancellationToken stoppingToken)
+		// Проверка на прошлое
+		if (nextRun <= now)
+		{
+			nextPeriodStart += period;
+			nextRun = nextPeriodStart - offset;
+		}
+
+		TimeSpan delay = nextRun - now;
+		int delayMs = (int)delay.TotalMilliseconds;
+
+        
+		return Math.Max(100, delayMs); //минимум 100мс
+	}
+
+	private async Task DoWork(CancellationToken stoppingToken)
   {
     await using var db = GetDbConnection();
 
