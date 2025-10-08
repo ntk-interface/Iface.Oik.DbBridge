@@ -132,7 +132,6 @@ public class Worker : BackgroundService
 			try
 			{
 				int delayMs = CalculateDelay();
-				Tms.PrintDebug("Следующий запуск через " + TimeSpan.FromMilliseconds(delayMs).TotalSeconds + " сек");
 				await Task.Delay(delayMs, stoppingToken);
 				if (stoppingToken.IsCancellationRequested)
 					break;
