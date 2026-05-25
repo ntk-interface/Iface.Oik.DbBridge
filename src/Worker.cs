@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Data.SqlClient;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using Iface.Oik.Tm.Helpers;
 using Iface.Oik.Tm.Interfaces;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
 using MySqlConnector;
 using Npgsql;
@@ -20,8 +20,6 @@ public class Worker : BackgroundService
 
   private          string       _connectionString = string.Empty;
   private readonly List<string> _commandTexts     = new();
-
-  private long _lastRunTime;
 
 
   private readonly IOikDataApi              _api;
@@ -127,58 +125,59 @@ public class Worker : BackgroundService
 
   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
   {
-		while (!stoppingToken.IsCancellationRequested)
-		{
-			try
-			{
-				int delayMs = CalculateDelay();
-				await Task.Delay(delayMs, stoppingToken);
-				if (stoppingToken.IsCancellationRequested)
-					break;
-				
-                
-				await DoWork(stoppingToken);
-			}
-			catch (Exception ex)
-			{
-				Tms.PrintDebug($"Ошибка: {ex.Message}");
-			}
+    while (!stoppingToken.IsCancellationRequested)
+    {
+      try
+      {
+        int delayMs = CalculateDelay();
+        await Task.Delay(delayMs, stoppingToken);
+        if (stoppingToken.IsCancellationRequested)
+          break;
 
-		}
-	}
 
-	private int CalculateDelay()
-	{
-		DateTime now = DateTime.Now;
+        await DoWork(stoppingToken);
+      }
+      catch (Exception ex)
+      {
+        Tms.PrintDebug($"Ошибка: {ex.Message}");
+      }
+    }
+  }
 
-		TimeSpan period = TimeSpan.FromSeconds(_config.WorkPeriod);
-		TimeSpan offset = TimeSpan.FromSeconds(_config.WorkOffset);
 
-		// Вычисляем ближайшую границу
-		long ticksSinceEpoch = now.Ticks;
-		long periodTicks = period.Ticks;
-		long periods = ticksSinceEpoch / periodTicks;
-		DateTime nextPeriodStart = new DateTime((periods + 1) * periodTicks, DateTimeKind.Local); 
+  private int CalculateDelay()
+  {
+    DateTime now = DateTime.Now;
 
-        DateTime nextRun = nextPeriodStart  - offset;
+    TimeSpan period = TimeSpan.FromSeconds(_config.WorkPeriod);
+    TimeSpan offset = TimeSpan.FromSeconds(_config.WorkOffset);
 
-		Tms.PrintDebug("Следующий запуск в " + nextRun.ToString());
+    // Вычисляем ближайшую границу
+    long     ticksSinceEpoch = now.Ticks;
+    long     periodTicks     = period.Ticks;
+    long     periods         = ticksSinceEpoch / periodTicks;
+    DateTime nextPeriodStart = new DateTime((periods + 1) * periodTicks, DateTimeKind.Local);
 
-		// Проверка на прошлое
-		if (nextRun <= now)
-		{
-			nextPeriodStart += period;
-			nextRun = nextPeriodStart - offset;
-		}
+    DateTime nextRun = nextPeriodStart - offset;
 
-		TimeSpan delay = nextRun - now;
-		int delayMs = (int)delay.TotalMilliseconds;
+    Tms.PrintDebug("Следующий запуск в " + nextRun);
 
-        
-		return Math.Max(100, delayMs); //минимум 100мс
-	}
+    // Проверка на прошлое
+    if (nextRun <= now)
+    {
+      nextPeriodStart += period;
+      nextRun         =  nextPeriodStart - offset;
+    }
 
-	private async Task DoWork(CancellationToken stoppingToken)
+    TimeSpan delay   = nextRun - now;
+    int      delayMs = (int)delay.TotalMilliseconds;
+
+
+    return Math.Max(100, delayMs); //минимум 100мс
+  }
+
+
+  private async Task DoWork(CancellationToken stoppingToken)
   {
     await using var db = GetDbConnection();
 
@@ -190,12 +189,12 @@ public class Worker : BackgroundService
       {
         // подменяем выражения внутри процентов на результат выражения, например %TT20:1:1% -> 30.156
         var commandText = Regex.Replace(rawCommandText, @"%([^%]+)%", m =>
-                                        {
-                                          var expression       = m.Groups[1].Value;
-                                          var expressionResult = _api.GetExpressionResultSync(expression);
-                                          Tms.PrintDebug($"{expression} -> {expressionResult}");
-                                          return expressionResult;
-                                        });
+        {
+          var expression       = m.Groups[1].Value;
+          var expressionResult = _api.GetExpressionResultSync(expression);
+          Tms.PrintDebug($"{expression} -> {expressionResult}");
+          return expressionResult;
+        });
 
         Tms.PrintDebug("Исполняется SQL: " + commandText);
 
