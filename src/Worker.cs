@@ -83,7 +83,8 @@ public class Worker : BackgroundService
                InitialCatalog         = _config.DbDatabase,
                UserID                 = _config.DbUser,
                Password               = _config.DbPassword,
-               TrustServerCertificate = true
+               TrustServerCertificate = false,
+               Encrypt                = false,
              }.ConnectionString,
 
              "MYSQL" => new MySqlConnectionStringBuilder
