@@ -99,12 +99,13 @@ public class Worker : BackgroundService
 
              "PGSQL" => new NpgsqlConnectionStringBuilder
              {
-               Host     = _config.DbHost,
-               Port     = _config.DbPort,
-               Database = _config.DbDatabase,
-               Username = _config.DbUser,
-               Password = _config.DbPassword,
-               SslMode  = SslMode.Disable,
+               Host              = _config.DbHost,
+               Port              = _config.DbPort,
+               Database          = _config.DbDatabase,
+               Username          = _config.DbUser,
+               Password          = _config.DbPassword,
+               SslMode           = SslMode.Disable,
+               GssEncryptionMode = GssEncryptionMode.Disable,
              }.ConnectionString,
 
              _ => throw new Exception($"Неизвестный тип базы данных {_config.DbType}"),
