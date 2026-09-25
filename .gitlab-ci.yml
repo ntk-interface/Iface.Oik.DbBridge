@@ -1,3 +1,8 @@
+stages:
+  - check
+  - build
+  - deploy
+
 variables:
   MAJOR_VERSION: 25
   FULL_BUILD_VERSION: '${MAJOR_VERSION}.${CI_PIPELINE_IID}'
@@ -14,12 +19,24 @@ variables:
 
 workflow:
   rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      
+check:
+  stage: check
+  tags:
+    - windows
+  script:
+    - 'dotnet tool restore'
+    - 'dotnet csharpier check .'
+    - 'dotnet build'
 
 build:
   stage: build
   tags:
     - windows
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   script:
     - 'dotnet publish -c Release -r win-x64 -p:CopyOutputSymbolsToPublishDirectory=false -p:PublishSingleFile=true --self-contained false -o ${BINARY_PATH_WINDOWS}'
     - 'dotnet publish -c Release -r linux-x64 -p:CopyOutputSymbolsToPublishDirectory=false -p:PublishSingleFile=true --self-contained false -o ${BINARY_PATH_LINUX}'
@@ -38,6 +55,8 @@ deploy:
   stage: deploy
   tags:
     - windows
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   variables:
     GIT_STRATEGY: none
   script:
