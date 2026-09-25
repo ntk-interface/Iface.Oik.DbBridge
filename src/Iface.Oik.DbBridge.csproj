@@ -1,33 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
-        <LangVersion>latest</LangVersion>
-        <Nullable>enable</Nullable>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageReference Include="Dapper" Version="2.1.72" />
-        <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
-        <PackageReference Include="MySqlConnector" Version="2.4.0" />
-        <PackageReference Include="Npgsql" Version="10.0.2" />
-    </ItemGroup>
-    <ItemGroup>
-        <Reference Include="Iface.Oik.Tm">
-            <HintPath>..\lib\Iface.Oik.Tm.dll</HintPath>
-        </Reference>
-        <Reference Include="Iface.Oik.Tm.Native">
-            <HintPath>..\lib\Iface.Oik.Tm.Native.dll</HintPath>
-        </Reference>
-    </ItemGroup>
-    <ItemGroup>
-        <None Include="..\lib\libif_cfs.dll" CopyToOutputDirectory="PreserveNewest" />
-        <None Include="..\lib\libif_cfs.so" CopyToOutputDirectory="PreserveNewest" />
-    </ItemGroup>
-    <ItemGroup>
-        <None Remove="..\lib\libif_cfs.so" Condition="'$(RuntimeIdentifier)' == 'win-x64'" />
-        <None Remove="..\lib\libif_cfs.dll" Condition="'$(RuntimeIdentifier)' == 'linux-x64'" />
-    </ItemGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.72" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="MySqlConnector" Version="2.4.0" />
+    <PackageReference Include="Npgsql" Version="10.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Iface.Oik.Tm">
+      <HintPath>..\lib\Iface.Oik.Tm.dll</HintPath>
+    </Reference>
+    <Reference Include="Iface.Oik.Tm.Native">
+      <HintPath>..\lib\Iface.Oik.Tm.Native.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\lib\libif_cfs.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\lib\libif_cfs.so" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="..\lib\libif_cfs.so" Condition="'$(RuntimeIdentifier)' == 'win-x64'" />
+    <None Remove="..\lib\libif_cfs.dll" Condition="'$(RuntimeIdentifier)' == 'linux-x64'" />
+  </ItemGroup>
 </Project>

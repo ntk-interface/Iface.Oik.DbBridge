@@ -7,96 +7,97 @@ using Microsoft.Extensions.Hosting;
 
 namespace Iface.Oik.DbBridge;
 
-public class ServerService : CommonServerService, IHostedService
-{
-}
-
+public class ServerService : CommonServerService, IHostedService { }
 
 public class TmStartup : BackgroundService
 {
-  private const string ApplicationName = "Iface.Oik.DbBridge";
-  private const string TraceName       = "DbBridge";
-  private const string TraceComment    = "<Iface.Oik.DbBridge>";
+    private const string ApplicationName = "Iface.Oik.DbBridge";
+    private const string TraceName = "DbBridge";
+    private const string TraceComment = "<Iface.Oik.DbBridge>";
 
-  private static int              _tmCid;
-  private static TmUserInfo?      _userInfo;
-  private static TmServerFeatures _serverFeatures;
-  private static IntPtr           _stopEventHandle;
+    private static int _tmCid;
+    private static TmUserInfo? _userInfo;
+    private static TmServerFeatures _serverFeatures;
+    private static IntPtr _stopEventHandle;
 
-  private readonly IHostApplicationLifetime _applicationLifetime;
-  private readonly ICommonInfrastructure    _infr;
+    private readonly IHostApplicationLifetime _applicationLifetime;
+    private readonly ICommonInfrastructure _infr;
 
-
-  public TmStartup(ICommonInfrastructure infr, IHostApplicationLifetime applicationLifetime)
-  {
-    _infr                = infr;
-    _applicationLifetime = applicationLifetime;
-  }
-
-
-  public static void Connect()
-  {
-    var commandLineConfig = Tms.ParseTmCommandLineArguments();
-
-    (_tmCid, _userInfo, _serverFeatures, _stopEventHandle) = Tms.InitializeAsTaskWithoutSql(
-      new TmOikTaskOptions
-      {
-        TraceName    = TraceName,
-        TraceComment = TraceComment,
-      },
-      new TmInitializeOptions
-      {
-        ApplicationName = ApplicationName,
-        TmServer        = commandLineConfig.TmServer,
-        Host            = commandLineConfig.Host,
-        User            = commandLineConfig.User,
-        Password        = commandLineConfig.Password,
-      });
-
-    Tms.PrintMessage("Соединение с сервером установлено");
-
-    if (!string.IsNullOrEmpty(commandLineConfig.ConfigPath))
+    public TmStartup(ICommonInfrastructure infr, IHostApplicationLifetime applicationLifetime)
     {
-      ConfigLoader.SqlTextPath = commandLineConfig.ConfigPath;
+        _infr = infr;
+        _applicationLifetime = applicationLifetime;
     }
-    else if (commandLineConfig.ConfigIndex != 0 &&
-             Tms.TryDownloadTaskConfiguration(_tmCid, ApplicationName, commandLineConfig.ConfigIndex, out var path))
+
+    public static void Connect()
     {
-      ConfigLoader.SqlTextPath = path;
+        var commandLineConfig = Tms.ParseTmCommandLineArguments();
+
+        (_tmCid, _userInfo, _serverFeatures, _stopEventHandle) = Tms.InitializeAsTaskWithoutSql(
+            new TmOikTaskOptions { TraceName = TraceName, TraceComment = TraceComment },
+            new TmInitializeOptions
+            {
+                ApplicationName = ApplicationName,
+                TmServer = commandLineConfig.TmServer,
+                Host = commandLineConfig.Host,
+                User = commandLineConfig.User,
+                Password = commandLineConfig.Password,
+            }
+        );
+
+        Tms.PrintMessage("Соединение с сервером установлено");
+
+        if (!string.IsNullOrEmpty(commandLineConfig.ConfigPath))
+        {
+            ConfigLoader.SqlTextPath = commandLineConfig.ConfigPath;
+        }
+        else if (
+            commandLineConfig.ConfigIndex != 0
+            && Tms.TryDownloadTaskConfiguration(
+                _tmCid,
+                ApplicationName,
+                commandLineConfig.ConfigIndex,
+                out var path
+            )
+        )
+        {
+            ConfigLoader.SqlTextPath = path;
+        }
     }
-  }
 
-
-  public override Task StartAsync(CancellationToken cancellationToken)
-  {
-    _infr.InitializeTmWithoutSql(_tmCid, _userInfo, _serverFeatures);
-
-    return base.StartAsync(cancellationToken);
-  }
-
-
-  protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-  {
-    while (!stoppingToken.IsCancellationRequested)
+    public override Task StartAsync(CancellationToken cancellationToken)
     {
-      if (await Task.Run(() => Tms.StopEventSignalDuringWait(_stopEventHandle, 2000), stoppingToken))
-      {
-        Tms.PrintMessage("Получено сообщение об остановке со стороны сервера");
-        _applicationLifetime.StopApplication();
-        break;
-      }
+        _infr.InitializeTmWithoutSql(_tmCid, _userInfo, _serverFeatures);
+
+        return base.StartAsync(cancellationToken);
     }
-  }
 
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            if (
+                await Task.Run(
+                    () => Tms.StopEventSignalDuringWait(_stopEventHandle, 2000),
+                    stoppingToken
+                )
+            )
+            {
+                Tms.PrintMessage("Получено сообщение об остановке со стороны сервера");
+                _applicationLifetime.StopApplication();
+                break;
+            }
+        }
+    }
 
-  public override async Task StopAsync(CancellationToken cancellationToken)
-  {
-    _infr.TerminateTm();
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _infr.TerminateTm();
 
-    Tms.TerminateWithoutSql(_tmCid);
+        Tms.TerminateWithoutSql(_tmCid);
 
-    Tms.PrintMessage("Задача будет закрыта");
+        Tms.PrintMessage("Задача будет закрыта");
 
-    await base.StopAsync(cancellationToken);
-  }
+        await base.StopAsync(cancellationToken);
+    }
 }
